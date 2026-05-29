@@ -2,20 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Catch & Fry</title>
 
 <style>
 html,body{
 margin:0;
+width:100%;
+height:100%;
 overflow:hidden;
 background:#111;
 font-family:Arial,sans-serif;
 touch-action:none;
+overscroll-behavior:none;
 }
 
 canvas{
 display:block;
+width:100vw;
+height:100vh;
 }
 
 #hud,#msg{
@@ -27,21 +32,23 @@ z-index:10;
 }
 
 #hud{
-top:10px;
-left:10px;
+top:calc(8px + env(safe-area-inset-top));
+left:8px;
 font-size:15px;
 line-height:1.35;
-background:rgba(0,0,0,.25);
+background:rgba(0,0,0,.62);
 padding:8px 10px;
-border-radius:12px;
+border-radius:14px;
+border:2px solid rgba(255,216,77,.55);
+box-shadow:0 0 10px rgba(0,0,0,.55);
 }
 
 #msg{
-top:118px;
+bottom:calc(92px + env(safe-area-inset-bottom));
 left:0;
 width:100%;
 text-align:center;
-font-size:20px;
+font-size:22px;
 pointer-events:none;
 padding:0 10px;
 box-sizing:border-box;
@@ -49,33 +56,34 @@ box-sizing:border-box;
 
 #controls{
 position:fixed;
-bottom:calc(10px + env(safe-area-inset-bottom));
+bottom:calc(14px + env(safe-area-inset-bottom));
 left:0;
 width:100%;
 display:flex;
 justify-content:center;
-gap:6px;
+gap:8px;
 z-index:20;
 flex-wrap:wrap;
-padding:0 6px;
+padding:0 8px;
 box-sizing:border-box;
 }
 
 button{
-font-size:15px;
-font-weight:bold;
-padding:13px 10px;
+font-size:16px;
+font-weight:900;
+padding:14px 14px;
 border:0;
-border-radius:14px;
+border-radius:16px;
 background:#ffd84d;
 color:#111;
-box-shadow:0 5px 0 #9f6a00;
+box-shadow:0 6px 0 #9f6a00,0 0 8px rgba(0,0,0,.35);
 touch-action:manipulation;
+cursor:pointer;
 }
 
 button:active{
 transform:translateY(4px);
-box-shadow:0 1px 0 #9f6a00;
+box-shadow:0 2px 0 #9f6a00;
 }
 
 #start,#shop{
@@ -99,17 +107,19 @@ background:rgba(0,0,0,.86);
 }
 
 .box{
-background:rgba(0,0,0,.76);
-padding:22px;
-border-radius:25px;
+background:rgba(0,0,0,.78);
+padding:24px;
+border-radius:26px;
 max-width:92%;
-box-shadow:0 0 20px #000;
+box-shadow:0 0 22px #000;
+border:2px solid rgba(255,216,77,.45);
 }
 
 .box h1{
 font-size:48px;
 margin:0;
 color:#ffd84d;
+letter-spacing:1px;
 }
 
 .box h2{
@@ -130,16 +140,17 @@ color:#eee;
 }
 
 @media(max-width:700px){
-#hud{font-size:13px}
-#msg{font-size:17px;top:112px}
-button{font-size:13px;padding:12px 8px}
-.box h1{font-size:40px}
+#hud{font-size:12px;padding:7px 8px}
+#msg{font-size:18px;bottom:calc(102px + env(safe-area-inset-bottom))}
+#controls{gap:5px;bottom:calc(12px + env(safe-area-inset-bottom))}
+button{font-size:13px;padding:12px 9px;border-radius:14px}
+.box h1{font-size:38px}
 }
 
 @media(max-width:430px){
 #controls{gap:4px}
-button{font-size:12px;padding:11px 6px}
-#hud{font-size:12px}
+button{font-size:12px;padding:11px 7px}
+#hud{font-size:11px;max-width:48vw}
 #msg{font-size:16px}
 }
 </style>
@@ -170,7 +181,7 @@ Last Fish: <span id="lastFish">None</span>
 <div id="start">
 <div class="box">
 <h1>CATCH & FRY</h1>
-<p>Hook it. Cook it. Upgrade it.</p>
+<p>Cast it. Catch it. Fry it. Upgrade it.</p>
 <p>Catch fish, fry them for money, then buy better gear.</p>
 <button id="startBtn">START GAME</button>
 </div>
@@ -201,18 +212,74 @@ Last Fish: <span id="lastFish">None</span>
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
+function loadFirstImage(paths){
+  const img=new Image();
+  let i=0;
+  img.onload=()=>{ img.ready=true; };
+  img.onerror=()=>{ i++; if(i<paths.length) img.src=paths[i]; };
+  img.src=paths[i];
+  return img;
+}
+
+const bgImg=loadFirstImage([
+  "catch_and_fry_background.jpg",
+  "./catch_and_fry_background.jpg",
+  "images/catch_and_fry_background.jpg",
+  "assets/catch_and_fry_background.jpg"
+]);
+
+const castingGuy=loadFirstImage([
+  "characters/casting_guy.png",
+  "characters/casting_guy.jpg",
+  "./characters/casting_guy.png",
+  "./characters/casting_guy.jpg",
+  "casting_guy.png",
+  "casting_guy.jpg"
+]);
+
+const fishOnGuy=loadFirstImage([
+  "characters/fish_on_guy.png",
+  "characters/fish_on_guy.jpg",
+  "./characters/fish_on_guy.png",
+  "./characters/fish_on_guy.jpg",
+  "fish_on_guy.png",
+  "fish_on_guy.jpg"
+]);
+
+const fryingGuy=loadFirstImage([
+  "characters/frying_guy.png",
+  "characters/frying_guy.jpg",
+  "characters/fry_guy.png",
+  "characters/fry_guy.jpg",
+  "./characters/frying_guy.png",
+  "./characters/frying_guy.jpg",
+  "frying_guy.png",
+  "frying_guy.jpg",
+  "fry_guy.png",
+  "fry_guy.jpg"
+]);
+
+const music=new Audio("music/banjo_music.m4a");
+music.loop=true;
+music.volume=.32;
+
 function resize(){
-canvas.width=innerWidth;
-canvas.height=innerHeight;
+canvas.width=Math.floor(innerWidth*devicePixelRatio);
+canvas.height=Math.floor(innerHeight*devicePixelRatio);
+ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
 }
 resize();
 addEventListener("resize",resize);
+
+function W(){return innerWidth;}
+function H(){return innerHeight;}
 
 let audioCtx=null;
 function audioStart(){
 if(!audioCtx){
 audioCtx=new(window.AudioContext||window.webkitAudioContext)();
 }
+music.play().catch(()=>{});
 }
 
 function tone(freq,duration,type="sine",vol=.12){
@@ -261,6 +328,7 @@ let dockTop=0;
 let msgTimer=0;
 let fishJumpTimer=0;
 let splashTimer=0;
+let fryingAnimation=0;
 
 const fishTypes=[
 {name:"Tiny Fry",color:"#90e0ef",value:10,speed:1.8,size:28},
@@ -272,7 +340,6 @@ const fishTypes=[
 ];
 
 const player={x:90,y:0,w:58,h:78,speed:6,left:false,right:false};
-const fryer={x:0,y:0,w:145,h:95};
 
 const cast={
 active:false,
@@ -343,15 +410,15 @@ function spawnFish(){
 const t=chooseFish();
 fishes.push({
 ...t,
-x:Math.random()*canvas.width,
-y:canvas.height*.44+Math.random()*canvas.height*.28,
+x:Math.random()*W(),
+y:H()*.40+Math.random()*H()*.25,
 dir:Math.random()>.5?1:-1
 });
 }
 
 function resetFish(){
 fishes=[];
-for(let i=0;i<24;i++){
+for(let i=0;i<18;i++){
 spawnFish();
 }
 }
@@ -360,7 +427,7 @@ function startGame(){
 audioStart();
 started=true;
 document.getElementById("start").style.display="none";
-say("Cast your line!");
+say("Press CAST to start fishing!");
 }
 
 function castLine(){
@@ -380,11 +447,11 @@ return;
 
 soundCast();
 
-waterTop=canvas.height*.33;
+waterTop=H()*.36;
 
 cast.active=true;
 cast.reeling=false;
-cast.bobberX=Math.max(100,Math.min(canvas.width-220,player.x+180));
+cast.bobberX=Math.max(120,Math.min(W()-120,player.x+260));
 cast.bobberY=waterTop+35;
 cast.hookY=cast.bobberY+115;
 cast.fish={...chooseFish()};
@@ -424,14 +491,15 @@ let earned=basketValue;
 money+=earned;
 basket=0;
 basketValue=0;
+fryingAnimation=100;
 
 updateHud();
 soundFry();
 
-for(let i=0;i<45;i++){
+for(let i=0;i<50;i++){
 bubbles.push({
-x:fryer.x+Math.random()*fryer.w,
-y:fryer.y+Math.random()*fryer.h,
+x:W()-230+Math.random()*150,
+y:H()-210+Math.random()*80,
 r:4+Math.random()*8,
 life:30+Math.random()*25
 });
@@ -539,22 +607,23 @@ resetFish();
 updateHud();
 
 function update(){
-waterTop=canvas.height*.33;
-dockTop=canvas.height-120;
+waterTop=H()*.36;
+dockTop=H()-120;
 
-player.y=canvas.height-170;
-fryer.x=canvas.width-170;
-fryer.y=canvas.height-155;
+player.y=H()-205;
+if(W()<700){
+  player.y=H()-198;
+}
 
 if(player.left)player.x-=player.speed;
 if(player.right)player.x+=player.speed;
 
-player.x=Math.max(10,Math.min(canvas.width-player.w-10,player.x));
+player.x=Math.max(8,Math.min(W()-player.w-8,player.x));
 
 fishes.forEach(f=>{
 f.x+=f.speed*f.dir;
-if(f.x<-100)f.x=canvas.width+100;
-if(f.x>canvas.width+100)f.x=-100;
+if(f.x<-100)f.x=W()+100;
+if(f.x>W()+100)f.x=-100;
 });
 
 if(cast.active){
@@ -602,6 +671,7 @@ updateHud();
 }
 
 if(splashTimer>0)splashTimer--;
+if(fryingAnimation>0)fryingAnimation--;
 
 bubbles=bubbles.filter(b=>{
 b.y-=1;
@@ -613,19 +683,23 @@ if(msgTimer>0)msgTimer--;
 }
 
 function bg(){
-let g=ctx.createLinearGradient(0,0,0,canvas.height);
-g.addColorStop(0,"#ff7b54");
-g.addColorStop(.32,"#ffd166");
-g.addColorStop(.33,"#1b9aaa");
-g.addColorStop(1,"#05345f");
-ctx.fillStyle=g;
-ctx.fillRect(0,0,canvas.width,canvas.height);
-
-ctx.fillStyle="rgba(255,255,255,.25)";
-for(let i=0;i<canvas.width;i+=85){
-ctx.beginPath();
-ctx.arc(i+(Date.now()/35)%85,waterTop+80,18,0,Math.PI*2);
-ctx.fill();
+if(bgImg.ready || (bgImg.complete && bgImg.naturalWidth)){
+  const iw=bgImg.naturalWidth || bgImg.width;
+  const ih=bgImg.naturalHeight || bgImg.height;
+  const scale=Math.max(W()/iw,H()/ih);
+  const dw=iw*scale;
+  const dh=ih*scale;
+  const dx=(W()-dw)/2;
+  const dy=(H()-dh)/2;
+  ctx.drawImage(bgImg,dx,dy,dw,dh);
+}else{
+  let g=ctx.createLinearGradient(0,0,0,H());
+  g.addColorStop(0,"#ff7b54");
+  g.addColorStop(.32,"#ffd166");
+  g.addColorStop(.33,"#1b9aaa");
+  g.addColorStop(1,"#05345f");
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W(),H());
 }
 }
 
@@ -664,38 +738,54 @@ fishes.forEach(f=>fishShape(f.x,f.y,f,f.dir));
 }
 
 function dock(){
-ctx.fillStyle="#8b5a2b";
-ctx.fillRect(0,dockTop,canvas.width,120);
-
-ctx.fillStyle="#5f3518";
-for(let i=0;i<canvas.width;i+=80){
-ctx.fillRect(i,dockTop,16,120);
+ctx.fillStyle="rgba(0,0,0,.12)";
+ctx.fillRect(0,dockTop,W(),120);
 }
 
-ctx.fillStyle="#2b1608";
-ctx.fillRect(0,dockTop-5,canvas.width,8);
+function drawCharacterImage(img,x,y,w,h){
+if(img.ready || (img.complete && img.naturalWidth)){
+ctx.drawImage(img,x,y,w,h);
+return true;
+}
+return false;
 }
 
 function playerDraw(){
+let img=castingGuy;
+if(cast.active){
+img=fishOnGuy;
+}
+
+const mobile=W()<700;
+const drawW=mobile?235:360;
+const drawH=mobile?170:250;
+const drawX=player.x-(mobile?28:42);
+const drawY=player.y-(mobile?96:150);
+
+if(!drawCharacterImage(img,drawX,drawY,drawW,drawH)){
 ctx.fillStyle="#ffd84d";
 ctx.fillRect(player.x,player.y,player.w,player.h);
+}
+}
 
-ctx.fillStyle="#333";
-ctx.fillRect(player.x+8,player.y-18,player.w-16,18);
+function fryGuyDraw(){
+if(fryingAnimation<=0)return;
+const t=fryingAnimation/100;
+const pulse=1+Math.sin(Date.now()/80)*.025;
+const mobile=W()<700;
+const drawW=(mobile?245:360)*pulse;
+const drawH=(mobile?170:250)*pulse;
+const drawX=W()-drawW-(mobile?4:20);
+const drawY=H()-drawH-(mobile?75:82);
 
-ctx.fillStyle="#000";
-ctx.fillRect(player.x+12,player.y+20,8,8);
-ctx.fillRect(player.x+38,player.y+20,8,8);
-
-ctx.fillStyle="#b00020";
-ctx.fillRect(player.x+15,player.y+52,28,7);
-
-ctx.strokeStyle="#2b1605";
-ctx.lineWidth=5;
+if(!drawCharacterImage(fryingGuy,drawX,drawY,drawW,drawH)){
+ctx.fillStyle="rgba(255,216,77,.9)";
+ctx.fillRect(drawX,drawY,drawW,drawH);
+}
+ctx.fillStyle="rgba(255,230,90,"+(0.18*t)+")";
 ctx.beginPath();
-ctx.moveTo(player.x+player.w,player.y+15);
-ctx.lineTo(player.x+player.w+75,player.y-35);
-ctx.stroke();
+ctx.arc(drawX+drawW*.65,drawY+drawH*.38,80*t,0,Math.PI*2);
+ctx.fill();
 }
 
 function drawSplash(x,y){
@@ -718,8 +808,8 @@ ctx.fill();
 function drawCast(){
 if(!cast.active)return;
 
-let rodX=player.x+player.w+75;
-let rodY=player.y-35;
+let rodX=player.x+260;
+let rodY=player.y-95;
 
 ctx.strokeStyle="white";
 ctx.lineWidth=3;
@@ -762,19 +852,9 @@ cast.fish,
 }
 }
 
-function fryerDraw(){
-ctx.fillStyle="#222";
-ctx.fillRect(fryer.x,fryer.y,fryer.w,fryer.h);
-
-ctx.fillStyle="#ffb703";
-ctx.fillRect(fryer.x+12,fryer.y+15,fryer.w-24,fryer.h-32);
-
-ctx.fillStyle="#111";
-ctx.font="bold 22px Arial";
-ctx.fillText("FRYER",fryer.x+35,fryer.y+58);
-
+function fryerEffects(){
 bubbles.forEach(b=>{
-ctx.fillStyle="rgba(255,255,255,.8)";
+ctx.fillStyle="rgba(255,255,255,.75)";
 ctx.beginPath();
 ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
 ctx.fill();
@@ -785,9 +865,10 @@ function draw(){
 bg();
 drawFish();
 dock();
-fryerDraw();
+fryerEffects();
 playerDraw();
 drawCast();
+fryGuyDraw();
 }
 
 function loop(){
